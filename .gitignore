@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Xcode user-specific settings and local state
+**/xcuserdata/
+*.xcuserstate
+
+# Xcode build products and indexes
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM/
+
+# Swift Package Manager build artifacts
+.build/
+Packages/
+
+# CocoaPods artifacts (if CocoaPods is added later)
+Pods/
+
+# Fastlane generated reports and screenshots
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Optional local environment files
+.env
+.env.*
+!.env.example

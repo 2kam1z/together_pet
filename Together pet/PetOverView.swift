@@ -9,14 +9,24 @@ struct PetOverView: View {
     let experience: Int
     let canPet: Bool
     let onPet: () -> Void
-    private var stageNmae: String {
+    private var stageName: String {
         switch level {
         case 1...2:
-            return "Малышь"
+            return "Малыш"
         case 3...4:
             return "Исследователь"
         default:
             return "Верный друг"
+        }
+    }
+    private var stageColor: Color {
+        switch level {
+        case 1...2:
+            return Color.yellow
+        case 3...4:
+            return Color.orange
+        default:
+            return Color.green
         }
     }
     
@@ -24,11 +34,11 @@ struct PetOverView: View {
         VStack {
             Text("Уровень \(level)")
             Text("\(experience % 5)/5")
-            ProgressView(value: Double(experience % 5), total: 5.0)
+            ProgressView(value: Double(experience % 5), total: 5.0).tint(stageColor)
             Text("Серия: \(streak)")
             Text(emoji).font(.system(size: 72))
             Text(name).font(.title2.bold())
-            Text(stageNmae)
+            Text(stageName)
             Text("Энергия: \(energy)")
             
             Button("Погладить питомца") {
@@ -36,6 +46,7 @@ struct PetOverView: View {
             }
             .disabled(!canPet)
             .buttonStyle(.borderedProminent)
+            .tint(stageColor)
             
             if !canPet {
               Text("Не хватает энергии")
@@ -45,7 +56,7 @@ struct PetOverView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color.green.opacity(0.12))
+                .fill(stageColor.opacity(0.12))
         )
 
     }

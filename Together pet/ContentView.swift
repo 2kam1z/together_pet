@@ -150,6 +150,9 @@ struct ContentView: View {
             NavigationLink("Настройки питомца") {
             PetSettingsView(petName: $petName, petEmoji: $petEmoji)
             }
+            NavigationLink("Аккаунт") {
+                AuthView()
+            }
               Text("Выполнено целей: \(completedGoalsCount)/\(goals.count)")
               Text("Осталось целей: \(remainingGoalsCount)")
               
@@ -262,4 +265,7 @@ struct ContentView: View {
 #Preview {
   ContentView()
     .modelContainer(for: Goal.self, inMemory: true)
+    .environment(AuthSession())
+    .environment(PairSession())
 }
+
