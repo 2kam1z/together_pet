@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 
 @main struct MyApp: App {
@@ -9,15 +8,14 @@ import SwiftUI
     var body: some Scene {
         WindowGroup {
             RootView()
-            .environment(session)
-            .environment(pairSession)
-            .onAppear {
-                session.startListening()
-            }
-            .onDisappear {
-                session.stopListening()
-            }
-            .modelContainer(for: Goal.self)
+                .environment(session)
+                .environment(pairSession)
+                .onAppear {
+                    session.startListening()
+                }
+                .onDisappear {
+                    session.stopListening()
+                }
         }
     }
 }

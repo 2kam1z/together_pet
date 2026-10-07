@@ -1,271 +1,392 @@
-import SwiftData
 import SwiftUI
 
 struct ContentView: View {
-  @AppStorage("petName") private var petName = "Пикси"
-  @AppStorage("petEmoji") private var petEmoji = "🐣"
-  @AppStorage("energy") private var energy = 0
-  @AppStorage("petExperience") private var petExperience = 0
-  @AppStorage("lastResetTimestamp") private var lastResetTimestamp = 0.0
-  @AppStorage("streak") private var streak = 0
-  @AppStorage("lastGoalCompletionTimestamp") private var lastGoalCompletionTimestamp = 0.0
-  
-  @State private var goalToDelete: Goal?
-  @State private var showingDeleteConfirmation = false
-  @State private var selectedGoal: Goal?
-  @State private var editedGoalTitle = ""
-  @State private var editedGoalReward = 1
-  @State private var editedGoalDaily = true
-  @State private var newGoalTitle = ""
-  @State private var newGoalReward = 1
-  @State private var newGoalDaily = true
-  @State private var isPresented = false
-  @Query private var goals: [Goal]
-  @Environment(\.modelContext) private var modelContext
-  @Environment(\.scenePhase) private var scenePhase
-  private let petCost = 3
-  private var canPet: Bool {
-    energy >= petCost
-  }
-  private var completedGoalsCount: Int {
-    goals.filter { $0.isCompleted }.count
-  }
-  private var remainingGoalsCount: Int {
-    goals.count - completedGoalsCount
-  }
-  private var activeGoals: [Goal] {
-    goals.filter { !$0.isCompleted }
-  }
-  private var completeGoals: [Goal] {
-    goals.filter { $0.isCompleted }
-  }
-  private var petLevel: Int {
-    petExperience / 5 + 1
-  }
-  private var visibleStreak: Int {
-    if lastGoalCompletionTimestamp == 0 {
-      return 0
+    @State private var newGoalTitle = ""
+    @State private var newGoalReward = 1
+    @State private var newGoalDaily = true
+    @State private var isPresented = false
+    @State private var isPetting = false
+    @State private var petError = ""
+    @State private var isSavingGoal = false
+    @State private var goalError = ""
+    @State private var goalsSession = SharedGoalsSession()
+    @State private var completingGoalID: String?
+    @State private var completionError = ""
+    @State private var selectedSharedGoal: SharedGoal?
+    @State private var sharedGoalToDelete: SharedGoal?
+    @State private var showingSharedDeleteConfirmation = false
+    @State private var isDeletingGoal = false
+    @State private var deletionError = ""
+    @State private var currentDate = Date.now
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(PairSession.self) private var pairSession
+
+    private let petCost = 3
+    private let goalCalendar = GoalCalendar.moscow
+    
+    private var canPet: Bool {
+        (pairSession.pair?.pet.energy ?? 0) >= petCost
     }
     
-    let lastDate = Date(timeIntervalSince1970: lastGoalCompletionTimestamp)
-    let calendar = Calendar.current
-    
-    if calendar.isDateInToday(lastDate) || calendar.isDateInYesterday(lastDate) {
-      return streak
-    }
-    
-    return 0
-  }
-  
-  private func goalRow(_ goal: Goal) -> some View {
-      VStack(alignment: .leading, spacing: 8) {
-          HStack {
-              Button(goal.isCompleted ? "✓ \(goal.title)" : goal.title) {
-                  if !goal.isCompleted {
-                      goal.isCompleted = true
-                      energy += goal.reward
-                      registerGoalCompletion()
-                  }
-              }.disabled(goal.isCompleted)
-              
-              Text(goal.isDaily ? "Ежедневно" : "Одноразовая")
-          }
-          HStack {
-              Button("Изменить") {
-                  editedGoalTitle = goal.title
-                  editedGoalReward = goal.reward
-                  editedGoalDaily = goal.isDaily
-                  selectedGoal = goal
-              }
-              .disabled(goal.isCompleted)
-              
-              Button("Удалить", role: .destructive) {
-                  goalToDelete = goal
-                  showingDeleteConfirmation = true
-              }
-          }
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(12)
-      .background(RoundedRectangle(cornerRadius: 12)
-        .fill(goal.isCompleted ? Color.gray.opacity(0.12) : Color.orange.opacity(0.12)))
-  }
-  
-  private func resetGoalsIfNewDay() {
-    if lastResetTimestamp == 0 {
-      lastResetTimestamp = Date.now.timeIntervalSince1970
-    }
-    
-    if !Calendar.current.isDateInToday(Date(timeIntervalSince1970: lastResetTimestamp)) {
-      for goal in goals {
-        if goal.isDaily {
-          goal.isCompleted = false
+    private var activeSharedGoals: [SharedGoal] {
+        goalsSession.goals.filter {
+            !$0.isCompleted(on: currentDate, calendar: goalCalendar)
         }
-      }
-      lastResetTimestamp = Date.now.timeIntervalSince1970
-    }
-  }
-  
-  private func clearNewGoal() {
-    newGoalTitle = ""
-    newGoalReward = 1
-    newGoalDaily = true
-  }
-  
-  private func registerGoalCompletion() {
-    let lastDate = Date(timeIntervalSince1970: lastGoalCompletionTimestamp)
-    let calendar = Calendar.current
-    
-    if lastGoalCompletionTimestamp != 0 && calendar.isDateInToday(lastDate) {
-      return
     }
     
-    if lastGoalCompletionTimestamp != 0 && calendar.isDateInYesterday(lastDate) {
-      streak += 1
-    } else {
-      streak = 1
+    private var completedSharedGoals: [SharedGoal] {
+        goalsSession.goals.filter {
+            $0.isCompleted(on: currentDate, calendar: goalCalendar)
+        }
     }
-    
-    lastGoalCompletionTimestamp = Date.now.timeIntervalSince1970
-  }
-  
-  var body: some View {
-    NavigationStack {
-      ScrollView {
-        VStack(spacing: 12) {
-            PetOverView(name: petName,
-                        emoji: petEmoji,
-                        energy: energy,
-                        streak: visibleStreak,
-                        level: petLevel,
-                        experience: petExperience,
-                        canPet: canPet,
-                        onPet: {
-                            if canPet {
-                                energy -= petCost
-                                petExperience += 1
-                            }
-                        }
+
+    private func clearNewGoal() {
+        newGoalTitle = ""
+        newGoalReward = 1
+        newGoalDaily = true
+    }
+
+    private func petSharedPet() async {
+        guard !isPetting,
+            canPet,
+            let pairID = pairSession.pairID
+        else { return }
+
+        isPetting = true
+        petError = ""
+
+        defer {
+            isPetting = false
+        }
+
+        do {
+            try await PairService().petPet(pairID: pairID)
+        } catch {
+            petError = error.localizedDescription
+        }
+    }
+
+    private func createSharedGoal() async {
+        let title = newGoalTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !isSavingGoal,
+            !title.isEmpty,
+            let pairID = pairSession.pairID
+        else { return }
+
+        let reward = newGoalReward
+        let daily = newGoalDaily
+
+        isSavingGoal = true
+        goalError = ""
+
+        defer {
+            isSavingGoal = false
+        }
+
+        do {
+            _ = try await SharedGoalService().createGoal(
+                pairID: pairID,
+                title: title,
+                reward: reward,
+                isDaily: daily
             )
-            NavigationLink("Настройки питомца") {
-            PetSettingsView(petName: $petName, petEmoji: $petEmoji)
-            }
-            NavigationLink("Аккаунт") {
-                AuthView()
-            }
-              Text("Выполнено целей: \(completedGoalsCount)/\(goals.count)")
-              Text("Осталось целей: \(remainingGoalsCount)")
-              
-              if goals.isEmpty {
-                Text("Нет целей")
-              }
-              
-              Text("Активные")
-              
-              ForEach(activeGoals) { goal in
-                goalRow(goal)
-              }
-              
-              if !completeGoals.isEmpty {
-                Text("Выполненные")
-                
-                ForEach(completeGoals) { goal in
-                  goalRow(goal)
+
+            clearNewGoal()
+            isPresented = false
+            
+        } catch {
+            goalError = error.localizedDescription
+        }
+    }
+    
+    private func completeSharedGoal(_ goal: SharedGoal) async {
+        guard completingGoalID == nil,
+            !isDeletingGoal,
+              !goal.isCompleted(on: Date.now, calendar: goalCalendar),
+            let goalID = goal.id,
+            let pairID = pairSession.pairID
+        else { return }
+        
+        completingGoalID = goalID
+        completionError = ""
+        
+        defer {
+            completingGoalID = nil
+        }
+        
+        do {
+            try await SharedGoalService().completeGoal(
+                pairID: pairID,
+                goalID: goalID
+            )
+        } catch {
+            completionError = error.localizedDescription
+        }
+    }
+    
+    private func deleteSharedGoal(_ goal: SharedGoal) async {
+        guard completingGoalID == nil,
+              !goal.isCompleted,
+              !isDeletingGoal,
+              let goalID = goal.id,
+              let pairID = pairSession.pairID
+        else {return }
+        
+        isDeletingGoal = true
+        deletionError = ""
+        
+        defer {
+            isDeletingGoal = false
+        }
+        
+        do {
+            try await SharedGoalService().deleteGoal(pairID: pairID, goalID: goalID)
+        } catch {
+            deletionError = error.localizedDescription
+        }
+    }
+    
+    private func sharedGoalRow(_ goal: SharedGoal) -> some View {
+        SharedGoalRow(
+            goal: goal,
+            isCompletedToday: goal.isCompleted(
+                on: currentDate,
+                calendar: goalCalendar
+            ),
+            onComplete: {
+                Task {
+                    await completeSharedGoal(goal)
                 }
-              }
-              
-              Button("Новая цель") {
-                isPresented = true
-              }
-              .sheet(isPresented: $isPresented){
-                VStack {
-                  TextField("Новая цель", text: $newGoalTitle)
-                  Stepper("Награда: \(newGoalReward)", value: $newGoalReward, in: 1...5)
-                  Toggle("Ежедневно", isOn: $newGoalDaily)
-                  Button("Сохранить"){
-                    let title = newGoalTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let reward = newGoalReward
-                    let daily = newGoalDaily
-                    
-                    if !title.isEmpty {
-                      modelContext.insert(Goal(title: title, reward: reward, daily: daily))
-                      clearNewGoal()
-                      isPresented = false
-                    }
-                  }.disabled(newGoalTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                  
-                  Button("Отмена"){
-                    clearNewGoal()
-                    isPresented = false
-                  }
-                }
-                .padding()
-              }
-              
-            }.padding(16)
-          }
-          .onAppear {
-            resetGoalsIfNewDay()
-          }
-          .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active {
-              resetGoalsIfNewDay()
+            },
+            onEdit: {
+                selectedSharedGoal = goal
+            },
+            onDelete: {
+                sharedGoalToDelete = goal
+                showingSharedDeleteConfirmation = true
             }
-          }
-          .sheet(item: $selectedGoal) { goal in
-            VStack {
-              TextField("Название цели", text: $editedGoalTitle)
-              
-              Stepper(
-                "Награда: \(editedGoalReward)",
-                value: $editedGoalReward,
-                in: 1...5
-              )
-              
-              Toggle("Ежедневно", isOn: $editedGoalDaily)
-              
-              Button("Сохранить") {
-                let title = editedGoalTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !title.isEmpty {
-                  goal.title = title
-                  goal.reward = editedGoalReward
-                  goal.isDaily = editedGoalDaily
-                  selectedGoal = nil
-                }
-              }.disabled(editedGoalTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-              
-              Button("Отмена") {
-                selectedGoal = nil
-              }
-            }
-            .padding()
-          }
-          .confirmationDialog(
-            "Удалить цель?",
-            isPresented: $showingDeleteConfirmation,
-            titleVisibility: .visible
-          ) {
-            Button("Удалить", role: .destructive) {
-              if let goal = goalToDelete {
-                modelContext.delete(goal)
-                goalToDelete = nil
-              }
+        )
+        .disabled(completingGoalID != nil || isDeletingGoal)
+    }
+    
+    private func refreshDateAtMidnight() async {
+        while !Task.isCancelled {
+            currentDate = Date.now
+            
+            let today = goalCalendar.startOfDay(for: currentDate)
+            
+            guard let nextMidnight = goalCalendar.date(
+                byAdding: .day,
+                value: 1,
+                to: today
+            ) else {
+                return
             }
             
-            Button("Отмена", role: .cancel) {
-              goalToDelete = nil
+            let seconds = max(nextMidnight.timeIntervalSinceNow, 1)
+            
+            do{
+                try await Task.sleep(for: .seconds(seconds))
+            } catch {
+                return
             }
-          } message: {
-            Text("Это действие нельзя отменить.")
-      }
+        }
     }
-  }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 12) {
+                    if pairSession.isLoading {
+                        ProgressView("Загружаем общего питомца...")
+                    } else if !pairSession.errorMessage.isEmpty {
+                        Text(pairSession.errorMessage)
+                    } else if let pair = pairSession.pair {
+                        PetOverView(
+                            name: pair.pet.name,
+                            emoji: pair.pet.emoji,
+                            energy: pair.pet.energy,
+                            streak: pair.visibleStreak(on: currentDate, calendar: goalCalendar),
+                            level: pair.pet.level,
+                            experience: pair.pet.experience,
+                            canPet: canPet,
+                            onPet: {
+                                Task {
+                                    await petSharedPet()
+                                }
+                            }
+                        )
+                        .disabled(isPetting)
+
+                        if isPetting {
+                            ProgressView("Гладим питомца")
+                        }
+
+                        if !petError.isEmpty {
+                            Text(petError)
+                                .foregroundStyle(.red)
+                        }
+
+                        if let pairID = pairSession.pairID {
+                            NavigationLink("Настройки питомца") {
+                                SharedPetSettingsView(pairID: pairID)
+                            }
+                        }
+                    } else {
+                        Text("Создайте пару на экране «Аккаунт»")
+                    }
+
+                    NavigationLink("Аккаунт") {
+                        AuthView()
+                    }
+                    
+                    if pairSession.pairID != nil {
+                        Text("Общие цели")
+                            .font(.headline)
+                        
+                        Text("Выполнено: \(completedSharedGoals.count) из \(goalsSession.goals.count)")
+                        
+                        if isDeletingGoal {
+                            ProgressView("Удаляем цель...")
+                        }
+                        
+                        if !deletionError.isEmpty {
+                            Text(deletionError)
+                                .foregroundStyle(.red)
+                        }
+                        
+                        if completingGoalID != nil {
+                            ProgressView("Выполняем цель...")
+                        }
+                        
+                        if !completionError.isEmpty {
+                            Text(completionError)
+                                .foregroundStyle(.red)
+                        }
+                        
+                        if goalsSession.isLoading {
+                            ProgressView("Загружаем цели...")
+                        } else if !goalsSession.errorMessage.isEmpty {
+                            Text(goalsSession.errorMessage)
+                                .foregroundStyle(.red)
+                        } else if goalsSession.goals.isEmpty {
+                            Text("Общих целей пока нет")
+                        } else {
+                            if !activeSharedGoals.isEmpty {
+                                Text("Активные")
+                                    .font(.headline)
+                                
+                                ForEach(activeSharedGoals) {goal in
+                                    sharedGoalRow(goal)
+                                }
+                            }
+                            
+                            if !completedSharedGoals.isEmpty {
+                                Text("Выполненные")
+                                    .font(.headline)
+                                
+                                ForEach(completedSharedGoals) { goal in
+                                    sharedGoalRow(goal)
+                                }
+                            }
+                        }
+                    }
+
+                    Button("Новая цель") {
+                        goalError = ""
+                        isPresented = true
+                    }
+                    .disabled(pairSession.pairID == nil)
+                    .sheet(isPresented: $isPresented) {
+                        VStack {
+                            TextField("Новая цель", text: $newGoalTitle)
+
+                            Stepper("Награда: \(newGoalReward)", value: $newGoalReward, in: 1...5)
+
+                            Toggle("Ежедневно", isOn: $newGoalDaily)
+
+                            Button("Сохранить") {
+                                Task {
+                                    await createSharedGoal()
+                                }
+                            }.disabled(
+                                newGoalTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            )
+
+                            if isSavingGoal {
+                                ProgressView("Сохраняем цель")
+                            }
+
+                            if !goalError.isEmpty {
+                                Text(goalError)
+                                    .foregroundStyle(.red)
+                            }
+
+                            Button("Отмена") {
+                                clearNewGoal()
+                                isPresented = false
+                            }
+                        }
+                        .padding()
+                        .disabled(isSavingGoal)
+                        .interactiveDismissDisabled(isSavingGoal)
+                    }
+
+                }.padding(16)
+            }
+            .sheet(item: $selectedSharedGoal) { goal in
+                if let pairID = pairSession.pairID {
+                    SharedGoalEditView(goal: goal, pairID: pairID)
+                }
+            }
+            .onAppear {
+                currentDate = Date.now
+            }
+            .task(id: pairSession.pairID) {
+                if let pairID = pairSession.pairID {
+                    await goalsSession.load(pairID: pairID)
+                } else {
+                    goalsSession.reset()
+                }
+            }
+            .task(id: scenePhase) {
+                guard scenePhase == .active else {
+                    return
+                }
+                
+                await refreshDateAtMidnight()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    currentDate = Date.now
+                }
+            }
+            .confirmationDialog(
+                "Удалить общую цель?",
+                isPresented: $showingSharedDeleteConfirmation,
+                titleVisibility: .visible,
+                presenting: sharedGoalToDelete
+            ) { goal in
+                Button("Удалить", role: .destructive) {
+                    Task {
+                        await deleteSharedGoal(goal)
+                    }
+                    sharedGoalToDelete = nil
+                }
+
+                Button("Отмена", role: .cancel) {
+                    sharedGoalToDelete = nil
+                }
+            } message: { goal in
+                Text("Удалить «\(goal.title)» для вас обоих? Это действие нельзя отменить.")
+            }
+        }
+    }
 }
 
 #Preview {
-  ContentView()
-    .modelContainer(for: Goal.self, inMemory: true)
-    .environment(AuthSession())
-    .environment(PairSession())
+    ContentView()
+        .environment(AuthSession())
+        .environment(PairSession())
 }
-

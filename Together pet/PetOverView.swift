@@ -8,7 +8,7 @@ struct PetOverView: View {
     let level: Int
     let experience: Int
     let canPet: Bool
-    let onPet: () -> Void
+    var onPet: (() -> Void)? = nil
     private var stageName: String {
         switch level {
         case 1...2:
@@ -29,28 +29,31 @@ struct PetOverView: View {
             return Color.green
         }
     }
-    
+
     var body: some View {
         VStack {
             Text("Уровень \(level)")
             Text("\(experience % 5)/5")
             ProgressView(value: Double(experience % 5), total: 5.0).tint(stageColor)
-            Text("Серия: \(streak)")
+            Text("Твоя серия: \(streak)")
             Text(emoji).font(.system(size: 72))
             Text(name).font(.title2.bold())
             Text(stageName)
             Text("Энергия: \(energy)")
-            
-            Button("Погладить питомца") {
-                onPet()
+
+            if let onPet = onPet {
+                Button("Погладить питомца") {
+                    onPet()
+                }
+                .disabled(!canPet)
+                .buttonStyle(.borderedProminent)
+                .tint(stageColor)
+
+                if !canPet {
+                    Text("Не хватает энергии")
+                }
             }
-            .disabled(!canPet)
-            .buttonStyle(.borderedProminent)
-            .tint(stageColor)
-            
-            if !canPet {
-              Text("Не хватает энергии")
-            }
+
         }
         .frame(maxWidth: .infinity)
         .padding(20)
@@ -63,5 +66,7 @@ struct PetOverView: View {
 }
 
 #Preview {
-    PetOverView(name: "Пикси", emoji: "🐣", energy: 0, streak: 1, level: 1, experience: 0, canPet: false, onPet: {})
+    PetOverView(
+        name: "Пикси", emoji: "🐣", energy: 0, streak: 1, level: 1, experience: 0, canPet: false,
+        onPet: {})
 }

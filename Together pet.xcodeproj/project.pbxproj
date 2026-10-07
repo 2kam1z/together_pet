@@ -11,15 +11,31 @@
 		2621B413306813B100B2EB0A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2621B412306813B100B2EB0A /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		267A809B307646180004B2A1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000100000000;
+			remoteInfo = "Together pet";
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* Together pet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Together pet.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2621B419306815AD00B2EB0A /* Together-pet-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Together-pet-Info.plist"; sourceTree = "<group>"; };
+		267A8097307646180004B2A1 /* TogetherPetTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TogetherPetTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		000000000000000000000010 /* Together pet */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Together pet";
+			sourceTree = "<group>";
+		};
+		267A8098307646180004B2A1 /* TogetherPetTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TogetherPetTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +48,11 @@
 				2621B413306813B100B2EB0A /* FirebaseFirestore in Frameworks */,
 			);
 		};
+		267A8094307646180004B2A1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -40,6 +61,7 @@
 			children = (
 				2621B419306815AD00B2EB0A /* Together-pet-Info.plist */,
 				000000000000000000000010 /* Together pet */,
+				267A8098307646180004B2A1 /* TogetherPetTests */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -48,6 +70,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000120 /* Together pet.app */,
+				267A8097307646180004B2A1 /* TogetherPetTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -77,6 +100,27 @@
 			productReference = 000000000000000000000120 /* Together pet.app */;
 			productType = "com.apple.product-type.application";
 		};
+		267A8096307646180004B2A1 /* TogetherPetTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 267A809F307646180004B2A1 /* Build configuration list for PBXNativeTarget "TogetherPetTests" */;
+			buildPhases = (
+				267A8093307646180004B2A1 /* Sources */,
+				267A8094307646180004B2A1 /* Frameworks */,
+				267A8095307646180004B2A1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				267A809C307646180004B2A1 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				267A8098307646180004B2A1 /* TogetherPetTests */,
+			);
+			name = TogetherPetTests;
+			productName = TogetherPetTests;
+			productReference = 267A8097307646180004B2A1 /* TogetherPetTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -84,11 +128,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2630;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					000000000000000100000000 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					267A8096307646180004B2A1 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 000000000000000100000000;
 					};
 				};
 			};
@@ -110,12 +158,18 @@
 			projectRoot = "";
 			targets = (
 				000000000000000100000000 /* Together pet */,
+				267A8096307646180004B2A1 /* TogetherPetTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		000000000000000140000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		267A8095307646180004B2A1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -128,7 +182,20 @@
 			files = (
 			);
 		};
+		267A8093307646180004B2A1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		267A809C307646180004B2A1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000100000000 /* Together pet */;
+			targetProxy = 267A809B307646180004B2A1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		000000000000000011000000 /* Debug configuration for PBXProject "Together pet" */ = {
@@ -343,6 +410,49 @@
 			};
 			name = Release;
 		};
+		267A809D307646180004B2A1 /* Debug configuration for PBXNativeTarget "TogetherPetTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kam1z.TogetherPetTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Together pet.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Together pet";
+			};
+			name = Debug;
+		};
+		267A809E307646180004B2A1 /* Release configuration for PBXNativeTarget "TogetherPetTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kam1z.TogetherPetTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Together pet.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Together pet";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -359,6 +469,14 @@
 			buildConfigurations = (
 				000000000000000111000000 /* Debug configuration for PBXNativeTarget "Together pet" */,
 				000000000000000112000000 /* Release configuration for PBXNativeTarget "Together pet" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		267A809F307646180004B2A1 /* Build configuration list for PBXNativeTarget "TogetherPetTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				267A809D307646180004B2A1 /* Debug configuration for PBXNativeTarget "TogetherPetTests" */,
+				267A809E307646180004B2A1 /* Release configuration for PBXNativeTarget "TogetherPetTests" */,
 			);
 			defaultConfigurationName = Release;
 		};

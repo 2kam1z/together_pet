@@ -6,5 +6,5 @@ struct SharedPet: Codable {
     var level: Int {
         experience / 5 + 1
     }
-    
+
 }
