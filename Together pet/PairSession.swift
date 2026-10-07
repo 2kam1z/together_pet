@@ -35,7 +35,7 @@ final class PairSession {
             startListening(pairID: foundID)
         } catch {
             guard currentLoadID == loadID else { return }
-            errorMessage = error.localizedDescription
+            errorMessage = FirestoreErrorMessage.text(for: error)
         }
     }
 
@@ -62,7 +62,7 @@ final class PairSession {
 
                 if let error = error {
                     self.pair = nil
-                    self.errorMessage = error.localizedDescription
+                    self.errorMessage = FirestoreErrorMessage.text(for: error)
                     return
                 }
 
@@ -78,7 +78,7 @@ final class PairSession {
                     self.errorMessage = ""
                 } catch {
                     self.pair = nil
-                    self.errorMessage = error.localizedDescription
+                    self.errorMessage = FirestoreErrorMessage.text(for: error)
                 }
             }
     }

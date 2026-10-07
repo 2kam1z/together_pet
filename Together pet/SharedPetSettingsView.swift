@@ -29,7 +29,7 @@ struct SharedPetSettingsView: View {
                 name: savedName, emoji: savedEmoji)
             message = "Настройки сохранены"
         } catch {
-            message = error.localizedDescription
+            message = FirestoreErrorMessage.text(for: error)
         }
     }
 

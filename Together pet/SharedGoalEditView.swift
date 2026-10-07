@@ -16,9 +16,13 @@ struct SharedGoalEditView: View {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
+    private var isTitleValid: Bool {
+        !cleanedTitle.isEmpty && cleanedTitle.count <= 120
+    }
+    
     private func saveGoal() async {
         let newTitle = cleanedTitle
-        guard !isSaving, !newTitle.isEmpty, let goalID = goal.id else { return }
+        guard !isSaving, isTitleValid, let goalID = goal.id else { return }
         
         isSaving = true
         errorMessage = ""
@@ -36,7 +40,7 @@ struct SharedGoalEditView: View {
                 isDaily: isDaily)
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = FirestoreErrorMessage.text(for: error)
         }
         
         
@@ -45,6 +49,12 @@ struct SharedGoalEditView: View {
     var body: some View {
         Form {
             TextField("Название", text: $title)
+            
+            if cleanedTitle.count > 120 {
+                Text("Название должно содержать не больше 120 символов")
+                    .foregroundStyle(.red)
+            }
+            
             Stepper("Награда: \(reward)", value: $reward, in: 1...5)
             Toggle("Ежедневно", isOn: $isDaily)
             
@@ -53,7 +63,7 @@ struct SharedGoalEditView: View {
                     await saveGoal()
                 }
             }
-            .disabled(cleanedTitle.isEmpty)
+            .disabled(!isTitleValid)
             
             if isSaving {
                 ProgressView("Сохраняем...")

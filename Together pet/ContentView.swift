@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 struct ContentView: View {
     @State private var newGoalTitle = ""
@@ -20,6 +21,7 @@ struct ContentView: View {
     @State private var currentDate = Date.now
     @Environment(\.scenePhase) private var scenePhase
     @Environment(PairSession.self) private var pairSession
+    @Environment(AuthSession.self) private var session
 
     private let petCost = 3
     private let goalCalendar = GoalCalendar.moscow
@@ -38,6 +40,14 @@ struct ContentView: View {
         goalsSession.goals.filter {
             $0.isCompleted(on: currentDate, calendar: goalCalendar)
         }
+    }
+    
+    private var cleanedNewGoalTitle: String {
+        newGoalTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private var isNewGoalTitleValid: Bool {
+        !cleanedNewGoalTitle.isEmpty && cleanedNewGoalTitle.count <= 120
     }
 
     private func clearNewGoal() {
@@ -62,15 +72,15 @@ struct ContentView: View {
         do {
             try await PairService().petPet(pairID: pairID)
         } catch {
-            petError = error.localizedDescription
+            petError = FirestoreErrorMessage.text(for: error)
         }
     }
 
     private func createSharedGoal() async {
-        let title = newGoalTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = cleanedNewGoalTitle
 
         guard !isSavingGoal,
-            !title.isEmpty,
+            isNewGoalTitleValid,
             let pairID = pairSession.pairID
         else { return }
 
@@ -96,7 +106,7 @@ struct ContentView: View {
             isPresented = false
             
         } catch {
-            goalError = error.localizedDescription
+            goalError = FirestoreErrorMessage.text(for: error)
         }
     }
     
@@ -121,7 +131,7 @@ struct ContentView: View {
                 goalID: goalID
             )
         } catch {
-            completionError = error.localizedDescription
+            completionError = FirestoreErrorMessage.text(for: error)
         }
     }
     
@@ -143,7 +153,7 @@ struct ContentView: View {
         do {
             try await SharedGoalService().deleteGoal(pairID: pairID, goalID: goalID)
         } catch {
-            deletionError = error.localizedDescription
+            deletionError = FirestoreErrorMessage.text(for: error)
         }
     }
     
@@ -202,6 +212,15 @@ struct ContentView: View {
                         ProgressView("Загружаем общего питомца...")
                     } else if !pairSession.errorMessage.isEmpty {
                         Text(pairSession.errorMessage)
+                        Button("Повторить загрузку питомца") {
+                            Task {
+                                guard let user = session.currentUser else {
+                                    return
+                                }
+                                
+                                await pairSession.load(userID: user.uid)
+                            }
+                        }
                     } else if let pair = pairSession.pair {
                         PetOverView(
                             name: pair.pet.name,
@@ -270,6 +289,16 @@ struct ContentView: View {
                         } else if !goalsSession.errorMessage.isEmpty {
                             Text(goalsSession.errorMessage)
                                 .foregroundStyle(.red)
+                            
+                            Button("Повторить загрузку целей") {
+                                Task {
+                                    guard let pairID = pairSession.pairID else {
+                                        return
+                                    }
+                                    
+                                    await goalsSession.load(pairID: pairID)
+                                }
+                            }
                         } else if goalsSession.goals.isEmpty {
                             Text("Общих целей пока нет")
                         } else {
@@ -301,6 +330,11 @@ struct ContentView: View {
                     .sheet(isPresented: $isPresented) {
                         VStack {
                             TextField("Новая цель", text: $newGoalTitle)
+                            
+                            if cleanedNewGoalTitle.count > 120 {
+                                Text("Название должно содержать не больше 120 символов")
+                                    .foregroundStyle(.red)
+                            }
 
                             Stepper("Награда: \(newGoalReward)", value: $newGoalReward, in: 1...5)
 
@@ -310,9 +344,8 @@ struct ContentView: View {
                                 Task {
                                     await createSharedGoal()
                                 }
-                            }.disabled(
-                                newGoalTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            )
+                            }
+                            .disabled(!isNewGoalTitleValid)
 
                             if isSavingGoal {
                                 ProgressView("Сохраняем цель")

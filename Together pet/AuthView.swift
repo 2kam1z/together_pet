@@ -7,10 +7,17 @@ enum AuthAction {
 }
 
 struct AuthView: View {
+    enum AuthAction: Hashable {
+        case register
+        case signIn
+    }
+    
     @State private var email = ""
     @State private var password = ""
     @State private var message = ""
     @State private var isLoading = false
+    @State private var selectedAction: AuthAction = .signIn
+    @State private var passwordConfirmation = ""
     @Environment(AuthSession.self) private var session
     @Environment(PairSession.self) private var pairSession
 
@@ -18,7 +25,15 @@ struct AuthView: View {
         email.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     private var canSubmit: Bool {
-        !cleanedEmail.isEmpty && !password.isEmpty
+        guard !cleanedEmail.isEmpty, !password.isEmpty else {
+            return false
+        }
+        
+        if selectedAction == .register {
+            return password == passwordConfirmation
+        }
+        
+        return true
     }
 
     private func authenticate(action: AuthAction) async {
@@ -43,7 +58,7 @@ struct AuthView: View {
                 message = "Выполнен вход: \(result.user.email ?? email)"
             }
         } catch {
-            message = error.localizedDescription
+            message = AuthErrorMessage.text(for: error)
         }
     }
 
@@ -54,7 +69,33 @@ struct AuthView: View {
             password = ""
             message = ""
         } catch {
-            message = error.localizedDescription
+            message = AuthErrorMessage.text(for: error)
+        }
+    }
+    
+    private func resetPassword() async {
+        guard !isLoading, !cleanedEmail.isEmpty else { return }
+        
+        let address = cleanedEmail
+        isLoading = true
+        message = ""
+        
+        defer {
+            isLoading = false
+        }
+        
+        do {
+            try await Auth.auth().sendPasswordReset(withEmail: address)
+            message = "Если аккаунт с этим email существует, вы получите письмо для смены пароля. Проверьте также папку «Спам»."
+        } catch {
+            let nsError = error as NSError
+            
+            if nsError.domain == AuthErrorDomain,
+               nsError.code == AuthErrorCode.userNotFound.rawValue {
+                message = "Если аккаунт с этим email существует, вы получите письмо для смены пароля. Проверьте также папку «Спам»."
+            } else {
+                message = AuthErrorMessage.text(for: error)
+            }
         }
     }
 
@@ -76,24 +117,50 @@ struct AuthView: View {
                     signOut()
                 }
             } else {
+                Picker("Режим", selection: $selectedAction) {
+                    Text("Вход").tag(AuthAction.signIn)
+                    Text("Регистрация").tag(AuthAction.register)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: selectedAction) { _, _ in
+                    passwordConfirmation = ""
+                    message = ""
+                }
+                
                 TextField("Email", text: $email)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
 
                 SecureField("Пароль", text: $password)
-
-                Button("Зарегистрироваться") {
-                    Task {
-                        await authenticate(action: .register)
+                
+                if selectedAction == .register {
+                    SecureField("Повторите пароль", text: $passwordConfirmation)
+                    
+                    if !passwordConfirmation.isEmpty,
+                       password != passwordConfirmation {
+                        Text("Пароли не совпадают.")
+                            .foregroundStyle(.red)
                     }
-                }.disabled(!canSubmit)
+                }
 
-                Button("Войти") {
+                Button(
+                    selectedAction == .register ? "Зарегистрироваться" : "Войти"
+                ) {
                     Task {
-                        await authenticate(action: .signIn)
+                        await authenticate(action: selectedAction)
                     }
-                }.disabled(!canSubmit)
+                }
+                .disabled(!canSubmit)
+                
+                if selectedAction == .signIn {
+                    Button("Забыли пароль?") {
+                        Task {
+                            await resetPassword()
+                        }
+                    }
+                    .disabled(cleanedEmail.isEmpty)
+                }
             }
 
             if isLoading {

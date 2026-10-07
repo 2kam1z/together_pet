@@ -16,7 +16,12 @@ struct PairView: View {
     }
     
     private func createPair() async {
-        guard let user = session.currentUser, !isLoading else {
+        guard let user = session.currentUser,
+              !isLoading,
+              !pairSession.isLoading,
+              pairSession.pairID == nil,
+              pairSession.errorMessage.isEmpty
+        else {
             return
         }
 
@@ -39,7 +44,7 @@ struct PairView: View {
 
             await pairSession.load(userID: user.uid)
         } catch {
-            message = error.localizedDescription
+            message = FirestoreErrorMessage.text(for: error)
         }
     }
     
@@ -66,7 +71,7 @@ struct PairView: View {
                 userID: user.uid
             )
         } catch {
-            message = error.localizedDescription
+            message = FirestoreErrorMessage.text(for: error)
         }
     }
     
@@ -96,7 +101,7 @@ struct PairView: View {
                 checkedInvite = invite
             }
         } catch {
-            message = error.localizedDescription
+            message = FirestoreErrorMessage.text(for: error)
         }
     }
     
@@ -128,16 +133,21 @@ struct PairView: View {
             message = "Вы присоединились к паре."
         } catch {
             checkedInvite = nil
-            message = error.localizedDescription
+            message = FirestoreErrorMessage.text(for: error)
         }
     }
     
     var body: some View {
         VStack(spacing: 16) {
             if let user = session.currentUser {
-                Button("Создать пару") {
-                    Task {
-                        await createPair()
+                
+                if pairSession.pairID == nil,
+                   !pairSession.isLoading,
+                   pairSession.errorMessage.isEmpty{
+                    Button("Создать пару") {
+                        Task {
+                            await createPair()
+                        }
                     }
                 }
 
@@ -218,6 +228,12 @@ struct PairView: View {
         }
         .padding()
         .navigationTitle("Наша пара")
+        .onChange(of: pairSession.pairID) {_, _ in
+            inviteCode = ""
+            checkedInvite = nil
+            enteredInviteCode = ""
+            message = ""
+        }
         .disabled(isLoading)
     }
 }

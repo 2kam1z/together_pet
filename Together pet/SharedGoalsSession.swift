@@ -38,7 +38,7 @@ final class SharedGoalsSession {
             startListening(pairID: pairID)
         } catch {
             guard currentLoadID == loadID else { return }
-            errorMessage = error.localizedDescription
+            errorMessage = FirestoreErrorMessage.text(for: error)
         }
     }
     
@@ -56,7 +56,7 @@ final class SharedGoalsSession {
                 
                 if let error = error {
                     self.goals = []
-                    self.errorMessage = error.localizedDescription
+                    self.errorMessage = FirestoreErrorMessage.text(for: error)
                     return
                 }
 
@@ -70,7 +70,7 @@ final class SharedGoalsSession {
                     self.errorMessage = ""
                 } catch {
                     self.goals = []
-                    self.errorMessage = error.localizedDescription
+                    self.errorMessage = FirestoreErrorMessage.text(for: error)
                 }
             }
     }
